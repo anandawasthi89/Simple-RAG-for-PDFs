@@ -1,0 +1,21 @@
+fastapi                # Lightweight web framework to expose RAG as an API
+uvicorn                # ASGI server to run FastAPI (handles requests, async support)
+
+langchain              # Core orchestration layer (chains, prompts, retrievers)
+langchain-core         # Base abstractions (runnables, interfaces used internally)
+langchain-community    # Integrations (PDF loaders, Ollama, vector stores, etc.)
+langchain-text-splitters   # for chunking
+langchain-huggingface      # for HuggingFaceEmbeddings
+langchain_ollama        # for ollama integration
+
+pypdf                  # Reads and extracts text from PDF files
+
+chromadb               # Vector database to store embeddings and perform similarity search
+
+sentence-transformers  # Provides embedding models (e.g., MiniLM) to convert text → vectors
+
+ollama                 # Python client to interact with local LLMs (e.g., phi, llama)
+
+python-dotenv          # Load environment variables from .env (API keys, configs)
+
+tqdm                   # Progress bars (useful when processing large PDFs/chunks)
