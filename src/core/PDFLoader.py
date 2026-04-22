@@ -1,33 +1,37 @@
-import os
 from pathlib import Path
-from pypdf import PdfReader as PyPdfReader
+from fastapi import UploadFile
+from pypdf import PdfReader
 
 
 class PDFLoader:
-    def __init__(self, file_name: str):
-        if not file_name:
-            raise ValueError("File name cannot be empty")
+    def __init__(self, data_path: Path):
+        self.data_path = data_path
 
-        base_path = Path(__file__).resolve().parents[2]
-        self.data_path = base_path / "data"
-        self.file_path = self.data_path / file_name
-
-        if not os.path.exists(str(self.file_path)):
-            raise FileNotFoundError(f"{file_name} not found in data directory")
-        else:
-            print(f"{file_name} found in data directory")
-
-    def load_pdf(self):
+    def load_pdf(self, file_name: str):
         try:
-            reader = PyPdfReader(self.file_path)
-            combined_text = []
+            file_path = self.data_path / file_name
+            reader = PdfReader(file_path)
 
+            text = ""
             for page in reader.pages:
-                text = page.extract_text()
-                if text:
-                    combined_text.append(text)
+                text += page.extract_text() or ""
 
-            return "\n".join(combined_text)
+            return text
 
         except Exception as e:
             raise RuntimeError(f"Failed to read PDF: {e}")
+
+    def stream_pdf(self, file: UploadFile):
+        try:
+            pdf_name = file.filename
+
+            reader = PdfReader(file.file)
+
+            text = ""
+            for page in reader.pages:
+                text += page.extract_text() or ""
+
+            return text, pdf_name
+
+        except Exception as e:
+            raise RuntimeError(f"Failed to stream PDF: {e}")
