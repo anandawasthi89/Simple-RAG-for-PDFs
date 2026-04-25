@@ -7,7 +7,6 @@ from src.core.Sanitisers import normalize_pdf_name
 from src.core.EmbeddingService import EmbeddingService
 from src.core.PDFLoader import PDFLoader
 from src.core.VectorStore import VectorStore
-from src.core.MemVectorStore import MemVectorStore
 
 
 class Engine:
@@ -25,8 +24,6 @@ class Engine:
 
         self.pdf_loader = PDFLoader(self.data_path)
         self.vector_store = VectorStore(str(self.data_path), self.embedding_service)
-
-        self.mem_vector_store = MemVectorStore(self.embedding_service)
 
         self.llm = ChatOllama(
             model="phi3.5",
@@ -81,19 +78,18 @@ class Engine:
     
     def resolve_multiPDF_query(self, question: str, pdf_names: list[str]):
         all_docs = []
+
         for pdf_name in pdf_names:
-            print("PDF NAME:", pdf_name)
             vectordb, _ = self.vector_store.load_or_create_collection(pdf_name)
-            docs = vectordb.similarity_search(question, k=3)
-            # for doc in docs:
-            #     all_docs.append(doc.page_content)
+            docs = vectordb.similarity_search_with_score(question, k=3)
             all_docs.extend(docs)
-        print(all_docs)
-        vector_db = self.mem_vector_store.add_documents(all_docs)
-        docs = vector_db.similarity_search(question, k=3)
-        vector_db.delete_collection()
-        print("DOC COUNT:", len(docs))
-        context = "\n\n".join([doc.page_content for doc in docs])
+
+        # Global ranking across PDFs
+        ranked = sorted(all_docs, key=lambda x: x[1])  # Chroma: lower = better
+
+        top_docs = [doc for doc, _ in ranked[:3]]
+        print("DOC COUNT:", len(top_docs))
+        context = "\n\n".join([doc.page_content for doc in top_docs])
         print("CONTEXT LENGTH:", len(context))
         print("CALLING LLM...")
         prompt = f"""/
