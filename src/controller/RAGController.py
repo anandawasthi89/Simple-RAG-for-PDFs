@@ -1,5 +1,10 @@
 from fastapi import APIRouter, UploadFile, File
 from src.core.Engine import Engine
+from pydantic import BaseModel
+
+class PDFQuery(BaseModel):
+    question: str
+    pdf_names: list[str]
 
 router = APIRouter()
 engine = Engine()
@@ -23,3 +28,8 @@ def refresh_pdfs():
 @router.get("/resolveQuery")
 def resolve_query(question: str, pdf_name: str):
     return {"answer": engine.resolve_query(question, pdf_name)}
+
+@router.post("/resolveMultiPDFQuery")
+def resolve_multiPDF_query(request: PDFQuery):
+    return {"answer": engine.resolve_multiPDF_query(request.question, request.pdf_names)}
+

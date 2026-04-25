@@ -1,6 +1,7 @@
 fastapi                # Lightweight web framework to expose RAG as an API
 uvicorn                # ASGI server to run FastAPI (handles requests, async support)
 python-multipart       # for file uploads
+pydantic               # for adding request/response bodies
 
 langchain              # Core orchestration layer (chains, prompts, retrievers)
 langchain-core         # Base abstractions (runnables, interfaces used internally)

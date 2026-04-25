@@ -7,6 +7,7 @@ from src.core.Sanitisers import normalize_pdf_name
 from src.core.EmbeddingService import EmbeddingService
 from src.core.PDFLoader import PDFLoader
 from src.core.VectorStore import VectorStore
+from src.core.MemVectorStore import MemVectorStore
 
 
 class Engine:
@@ -24,6 +25,8 @@ class Engine:
 
         self.pdf_loader = PDFLoader(self.data_path)
         self.vector_store = VectorStore(str(self.data_path), self.embedding_service)
+
+        self.mem_vector_store = MemVectorStore(self.embedding_service)
 
         self.llm = ChatOllama(
             model="phi3.5",
@@ -58,6 +61,36 @@ class Engine:
         print("PDF NAME:", pdf_name)
         vectordb, _ = self.vector_store.load_or_create_collection(pdf_name)
         docs = vectordb.similarity_search(question, k=3)
+        print("DOC COUNT:", len(docs))
+        context = "\n\n".join([doc.page_content for doc in docs])
+        print("CONTEXT LENGTH:", len(context))
+        print("CALLING LLM...")
+        prompt = f"""/
+        You are a helpful assistant. Answer ONLY from the context below.
+
+        Context:
+        {context}
+
+        Question:
+        {question}
+
+        Answer:
+        """
+        response = self.llm.invoke(prompt)
+        return response.content
+    
+    def resolve_multiPDF_query(self, question: str, pdf_names: list[str]):
+        all_docs = []
+        for pdf_name in pdf_names:
+            print("PDF NAME:", pdf_name)
+            vectordb, _ = self.vector_store.load_or_create_collection(pdf_name)
+            docs = vectordb.similarity_search(question, k=3)
+            # for doc in docs:
+            #     all_docs.append(doc.page_content)
+            all_docs.extend(docs)
+        print(all_docs)
+        self.mem_vector_store.vectordb.add_documents(all_docs)
+        docs = self.mem_vector_store.vectordb.similarity_search(question, k=3)
         print("DOC COUNT:", len(docs))
         context = "\n\n".join([doc.page_content for doc in docs])
         print("CONTEXT LENGTH:", len(context))
