@@ -33,3 +33,7 @@ def resolve_query(question: str, pdf_name: str):
 def resolve_multiPDF_query(request: PDFQuery):
     return {"answer": engine.resolve_multiPDF_query(request.question, request.pdf_names)}
 
+@router.post("/resolveMultiPDFQueryUsingLLM")
+def resolve_multiPDF_query_llm(request: PDFQuery):
+    return {"answer": engine.resolve_multiPDF_query_llm(request.question, request.pdf_names)}
+

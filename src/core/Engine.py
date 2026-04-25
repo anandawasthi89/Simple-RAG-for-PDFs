@@ -3,6 +3,7 @@ from fastapi import UploadFile
 from langchain_ollama import ChatOllama
 
 from src.core.Chunker import Chunker
+from langchain_core.documents import Document
 from src.core.Sanitisers import normalize_pdf_name
 from src.core.EmbeddingService import EmbeddingService
 from src.core.PDFLoader import PDFLoader
@@ -83,6 +84,8 @@ class Engine:
             vectordb, _ = self.vector_store.load_or_create_collection(pdf_name)
             docs = vectordb.similarity_search_with_score(question, k=3)
             all_docs.extend(docs)
+        
+        print(all_docs)
 
         # Global ranking across PDFs
         ranked = sorted(all_docs, key=lambda x: x[1])  # Chroma: lower = better
@@ -105,6 +108,72 @@ class Engine:
         """
         response = self.llm.invoke(prompt)
         return response.content
+    
+    def resolve_multiPDF_query_llm(self, question: str, pdf_names: list[str]):
+        all_docs = []
+
+        for pdf_name in pdf_names:
+            vectordb, _ = self.vector_store.load_or_create_collection(pdf_name)
+            docs = vectordb.similarity_search_with_score(question, k=3)
+            all_docs.extend(docs)
+
+        print(f"all_docs: {all_docs}")
+
+        top_docs = self.get_context_from_llm(all_docs,question)
+        print(f"top_docs: {top_docs}")
+        print("DOC COUNT:", len(top_docs))
+        context = "\n\n".join([doc[0].page_content for doc in top_docs])
+        print("CONTEXT LENGTH:", len(context))
+        print("CALLING LLM...")
+        prompt = f"""/
+        You are a helpful assistant. Answer ONLY from the context below.
+
+        Context:
+        {context}
+
+        Question:
+        {question}
+
+        Answer:
+        """
+        response = self.llm.invoke(prompt)
+        return response.content
+    
+    def get_context_from_llm(self, docs: list[Document], question: str):
+        chunkarr = [doc[0].page_content for doc in docs]
+
+        formatted_chunks = "\n\n".join(
+            [f"{i+1}. {chunk}" for i, chunk in enumerate(chunkarr)]
+        )
+
+        prompt = f"""
+        You are a ranking assistant.
+
+        Select the 3 most relevant chunks for answering the question.
+
+        Return ONLY the numbers (comma-separated), nothing else.
+
+        Question:
+        {question}
+
+        Chunks:
+        {formatted_chunks}
+
+        Answer:
+        """
+
+        response = self.llm.invoke(prompt)
+        content = response.content.strip()
+
+        # Example: "2,5,1"
+        try:
+            indices = [int(x.strip()) - 1 for x in content.split(",")]
+            selected_docs = [docs[i] for i in indices if i < len(docs)]
+        except:
+            # fallback: take first 3
+            selected_docs = sorted(docs, key=lambda x: x[1])[:3]
+
+        return selected_docs
 
     def refresh_data_pdfs(self):
         # 1. Get all PDF files from folder
