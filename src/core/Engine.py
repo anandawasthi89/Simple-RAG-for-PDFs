@@ -174,6 +174,48 @@ class Engine:
             selected_docs = sorted(docs, key=lambda x: x[1])[:3]
 
         return selected_docs
+    
+    def resolve_query_using_multiquery(self, question: str, pdf_names: str):
+        generatedQueries = self.generate_multi_query(question)
+        return self.generate_from_multiquery(generatedQueries,pdf_names, question)
+        
+    def generate_multi_query(self, question: str):
+        prompt = f"""/
+        You are an AI language model assistant. 
+        Your task is to generate five different versions of the given user question to retrieve relevant documents from a vector database. 
+        By generating multiple perspectives on the user question, your goal is to help the user overcome some of the limitations of the distance-based similarity search. Provide these alternative questions separated by newlines. 
+        Original question: {question}/
+        note: Only generate the questions separated by new lines. no numbering, sequencing, etc
+        """
+
+        response = self.llm.invoke(prompt)
+        content = response.content.strip()
+        return content.split("\n")
+
+    def generate_from_multiquery(self, generatedQueries: list[str], pdf_name: str, question: str):
+        print("PDF NAME:", pdf_name)
+        all_doc=[]
+        for query in generatedQueries:
+            vectordb, _ = self.vector_store.load_or_create_collection(pdf_name)
+            doc = vectordb.similarity_search(query, k=1)
+            all_doc.extend(doc)
+        print("DOC COUNT:", len(all_doc))
+        context = "\n\n".join([doc.page_content for doc in all_doc])
+        print("CONTEXT LENGTH:", len(context))
+        print("CALLING LLM...")
+        prompt = f"""/
+        You are a helpful assistant. Answer ONLY from the context below.
+
+        Context:
+        {context}
+
+        Question:
+        {question}
+
+        Answer:
+        """
+        response = self.llm.invoke(prompt)
+        return response.content
 
     def refresh_data_pdfs(self):
         # 1. Get all PDF files from folder

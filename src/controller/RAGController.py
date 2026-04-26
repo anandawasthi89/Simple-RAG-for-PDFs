@@ -6,6 +6,10 @@ class PDFQuery(BaseModel):
     question: str
     pdf_names: list[str]
 
+class PDFSimpleQuery(BaseModel):
+    question: str
+    pdf_name: str
+
 router = APIRouter()
 engine = Engine()
 
@@ -37,3 +41,6 @@ def resolve_multiPDF_query(request: PDFQuery):
 def resolve_multiPDF_query_llm(request: PDFQuery):
     return {"answer": engine.resolve_multiPDF_query_llm(request.question, request.pdf_names)}
 
+@router.post("/resolveQueryUsingMultiQuery")
+def resolve_query_using_multiquery(request: PDFSimpleQuery):
+    return {"answer": engine.resolve_query_using_multiquery(request.question, request.pdf_name)}
