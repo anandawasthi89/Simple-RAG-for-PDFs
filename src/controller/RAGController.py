@@ -44,3 +44,23 @@ def resolve_multiPDF_query_llm(request: PDFQuery):
 @router.post("/resolveQueryUsingMultiQuery")
 def resolve_query_using_multiquery(request: PDFSimpleQuery):
     return {"answer": engine.resolve_query_using_multiquery(request.question, request.pdf_name)}
+
+@router.post("/resolveQueryUsingRFP")
+def resolveQueryUsingRFP(request: PDFSimpleQuery):
+    return {"answer": engine.resolveQueryUsingRFP(request.question, request.pdf_name)}
+
+@router.post("/resolveQueryUsingQueryDecomposition")
+def resolveQueryUsingQueryDecomposition(request: PDFSimpleQuery):
+    return {"answer": engine.resolveQueryUsingQueryDecomposition(request.question, request.pdf_name)}
+
+@router.post("/resolveQueryUsingQueryDecomposition2")
+def resolveQueryUsingQueryDecomposition2(request: PDFSimpleQuery):
+    return {"answer": engine.resolveQueryUsingQueryDecomposition2(request.question, request.pdf_name)}
+
+@router.post("/resolveQueryUsingStepBack")
+def resolveQueryUsingStepBack(request: PDFSimpleQuery):
+    return {"answer": engine.resolveQueryUsingStepBack(request.question, request.pdf_name)}
+
+@router.post("/resolveQueryUsingHyDE")
+def resolveQueryUsingHyDE(request: PDFSimpleQuery):
+    return {"answer": engine.resolveQueryUsingHyDE(request.question, request.pdf_name)}
